@@ -49,6 +49,7 @@ app.post("/usuarios", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
+<<<<<<< HEAD
 
 app.use(express.json())
 
@@ -61,3 +62,5 @@ app.post('/login', (req, res) => {
     res.status(401).json({ erro: "Credenciais inválidas" })
   }
 })
+=======
+>>>>>>> c3eda179e226dc5c1adcabca9679dc5a9202da8d
