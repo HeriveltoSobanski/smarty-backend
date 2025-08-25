@@ -1,0 +1,16 @@
+{
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "mysql": "^2.18.1"
+  },
+  "name": "projeto-extensao-main",
+  "version": "1.0.0",
+  "description": "Nome do projeto:   SMARTY Entregas",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
