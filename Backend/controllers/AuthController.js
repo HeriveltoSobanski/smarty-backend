@@ -1,21 +1,30 @@
-import Usuario from '../models/Usuario.js'
+import db from "../config/db.js";
 
 const AuthController = {
   login: async (req, res) => {
-    const { email, senha } = req.body
+    const { email, senha } = req.body;
 
     if (!email || !senha) {
-      return res.status(400).json({ mensagem: 'Email e senha são obrigatórios' })
+      return res.status(400).json({ mensagem: "Email e senha são obrigatórios" });
     }
 
-    const usuario = await Usuario.findByEmail(email)
+    try {
+      const result = await db.query(
+        "SELECT * FROM usuarios WHERE email = $1",
+        [email]
+      );
 
-    if (!usuario || usuario.senha !== senha) {
-      return res.status(401).json({ mensagem: 'Credenciais inválidas' })
+      const usuario = result.rows[0];
+
+      if (!usuario || usuario.senha !== senha) {
+        return res.status(401).json({ mensagem: "Credenciais inválidas" });
+      }
+
+      return res.status(200).json({ mensagem: "Login realizado com sucesso" });
+    } catch (err) {
+      return res.status(500).json({ mensagem: "Erro no servidor", detalhe: err.message });
     }
-
-    return res.status(200).json({ mensagem: 'Login realizado com sucesso' })
   }
-}
+};
 
-export default AuthController
+export default AuthController;
