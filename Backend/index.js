@@ -1,16 +1,14 @@
 const express = require("express");
 const cors = require("cors");
 const mysql = require("mysql2");
-require("dotenv").config(); // Carrega variáveis de ambiente do .env
+require("dotenv").config(); 
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Conexão com o banco de dados
 const db = mysql.createConnection({
   host: process.env.DB_HOST || "localhost",
   user: process.env.DB_USER || "root",
