@@ -3,7 +3,7 @@ import db from "../config/db.js";
 
 const router = express.Router();
 
-// POST /api/produtos PARA CRIAR PRODUTOS
+// POST /api/produtos PRA CRIAR PRODUTOS
 router.post("/produtos", async (req, res) => {
   try {
     const { id_empresa, id_categoria, nome, descricao, preco, ativo } = req.body;
@@ -21,7 +21,7 @@ router.post("/produtos", async (req, res) => {
   }
 });
 
-// GET /api/produtos PARA MOSTRAR O JSON BRUTO
+// GET /api/produtos PRA MOSTRAR O JSON BRUTO
 router.get("/produtos", async (_req, res) => {
   try {
     const { rows } = await db.query("SELECT * FROM vw_produtos WHERE ativo = true");
@@ -31,7 +31,7 @@ router.get("/produtos", async (_req, res) => {
   }
 });
 
-// GET /api/produtos/html PARA MOSTRAR O HTML ESTILIZADO
+// GET /api/produtos/html PRA MOSTRAR O HTML ESTILIZADO
 router.get("/produtos/html", async (_req, res) => {
     try {
         const { rows } = await db.query("SELECT * FROM vw_produtos WHERE ativo = true");

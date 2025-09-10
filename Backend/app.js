@@ -16,7 +16,6 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(express.json());
 
-// Rota de eco para depuração de payloads JSON (pode remover depois)
 app.post("/api/_echo", (req, res) => {
   console.log("Body recebido:", req.body);
   res.json({ recebido: req.body });
