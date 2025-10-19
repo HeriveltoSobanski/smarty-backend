@@ -1,49 +1,77 @@
-import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken'
-import db from '../sequelize/models/index.cjs'
-const { Usuario } = db
+import bcrypt from "bcryptjs";
+import Usuario from "../models/Usuario.js";
 
 export const register = async (req, res) => {
-  const { nome, email, senha, tipo_usuario, documento } = req.body
-  if (!nome || !email || !senha) return res.status(400).json({ mensagem: 'nome, email e senha são obrigatórios' })
-
   try {
-    const existe = await Usuario.findOne({ where: { email } })
-    if (existe) return res.status(409).json({ mensagem: 'E-mail já cadastrado' })
+    const { nome, email, cpf, telefone, senha } = req.body;
 
-    const hash = await bcrypt.hash(senha, 10)
-    const usuario = await Usuario.create({ nome, email, senha: hash, tipo_usuario, documento })
-    const token = jwt.sign({ sub: usuario.id_usuario }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES || '1d' })
-    return res.status(201).json({
+    if (!nome || !email || !cpf || !telefone || !senha) {
+      return res.status(400).json({ message: "Todos os campos são obrigatórios." });
+    }
+
+    // verifica se já existe um usuário com o mesmo e-mail
+    const userExists = await Usuario.findOne({ where: { email } });
+    if (userExists) {
+      return res.status(400).json({ message: "E-mail já cadastrado." });
+    }
+
+    // criptografa a senha
+    const hashedPassword = await bcrypt.hash(senha, 10);
+
+    // cria o novo usuário
+    const novoUsuario = await Usuario.create({
+      nome,
+      email,
+      cpf,
+      telefone,
+      senha: hashedPassword,
+      tipo_usuario: 1,
+      ativo: true,
+    });
+
+    res.status(201).json({
+      message: "Usuário cadastrado com sucesso!",
       usuario: {
-        id_usuario: usuario.id_usuario,
-        nome: usuario.nome,
-        email: usuario.email,
-        tipo_usuario: usuario.tipo_usuario,
-        documento: usuario.documento,
-        criado_em: usuario.criado_em
+        id: novoUsuario.id_usuario,
+        nome: novoUsuario.nome,
+        email: novoUsuario.email,
       },
-      token
-    })
-  } catch (err) {
-    return res.status(500).json({ mensagem: 'Erro no servidor', detalhe: err.message })
+    });
+  } catch (error) {
+    console.error("Erro register:", error);
+    res.status(500).json({ message: "Erro ao registrar usuário." });
   }
-}
+};
 
 export const login = async (req, res) => {
-  const { email, senha } = req.body
-  if (!email || !senha) return res.status(400).json({ mensagem: 'Email e senha são obrigatórios' })
-
   try {
-    const user = await Usuario.findOne({ where: { email } })
-    if (!user) return res.status(401).json({ mensagem: 'Credenciais inválidas' })
+    const { email, senha } = req.body;
 
-    const ok = await bcrypt.compare(senha, user.senha)
-    if (!ok) return res.status(401).json({ mensagem: 'Credenciais inválidas' })
+    if (!email || !senha) {
+      return res.status(400).json({ message: "E-mail e senha são obrigatórios." });
+    }
 
-    const token = jwt.sign({ sub: user.id_usuario }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES || '1d' })
-    return res.json({ token })
-  } catch (err) {
-    return res.status(500).json({ mensagem: 'Erro no servidor', detalhe: err.message })
+    const usuario = await Usuario.findOne({ where: { email } });
+    if (!usuario) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const senhaValida = await bcrypt.compare(senha, usuario.senha);
+    if (!senhaValida) {
+      return res.status(401).json({ message: "Senha incorreta." });
+    }
+
+    res.status(200).json({
+      message: "Login realizado com sucesso!",
+      usuario: {
+        id: usuario.id_usuario,
+        nome: usuario.nome,
+        email: usuario.email,
+      },
+    });
+  } catch (error) {
+    console.error("Erro login:", error);
+    res.status(500).json({ message: "Erro ao realizar login." });
   }
-}
+};
+  

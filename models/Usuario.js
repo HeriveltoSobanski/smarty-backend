@@ -1,25 +1,46 @@
-import db from "../config/db.js";
+import { DataTypes } from "sequelize";
+import sequelize from "../config/db.js";
 
-const Usuario = {
-  findByEmail: async (email) => {
-    return new Promise((resolve, reject) => {
-      const sql = "SELECT * FROM usuarios WHERE email = ?";
-      db.query(sql, [email], (err, results) => {
-        if (err) return reject(err);
-        resolve(results[0]);
-      });
-    });
+const Usuario = sequelize.define(
+  "Usuario",
+  {
+    id_usuario: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    nome: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    email: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+    },
+    cpf: {
+      type: DataTypes.STRING,
+    },
+    telefone: {
+      type: DataTypes.STRING,
+    },
+    senha: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    criado_em: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+    atualizado_em: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
   },
-
-  create: async (nome, email, senha) => {
-    return new Promise((resolve, reject) => {
-      const sql = "INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)";
-      db.query(sql, [nome, email, senha], (err, result) => {
-        if (err) return reject(err);
-        resolve(result.insertId);
-      });
-    });
+  {
+    tableName: "usuarios", // nome exato da tabela no banco
+    timestamps: false,     // desativa createdAt / updatedAt automáticos
   }
-};
+);
 
 export default Usuario;

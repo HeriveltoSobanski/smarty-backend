@@ -1,68 +1,84 @@
-import db from '../config/db.js'
-import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken'
+import sequelize from "../config/db.js";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 export const register = async (req, res) => {
-  const { nome, email, senha, tipo_usuario, documento } = req.body
+  const { nome, email, telefone, senha, tipo_usuario, cpf, cnpj } = req.body;
 
-  if (!nome || !email || !senha) {
-    return res.status(400).json({ mensagem: 'nome, email e senha são obrigatórios' })
-  }
+  if (!nome || !email || !senha || !tipo_usuario)
+    return res.status(400).json({ mensagem: "Preencha todos os campos obrigatórios." });
 
   try {
-    // 1) existe e-mail?
-    const { rows: jaExiste } = await db.query(
-      'SELECT 1 FROM usuarios WHERE email = $1',
-      [email]
-    )
-    if (jaExiste.length) {
-      return res.status(409).json({ mensagem: 'E-mail já cadastrado' })
-    }
+    const [resultado] = await sequelize.query(
+      "SELECT 1 FROM usuarios WHERE email = :email",
+      { replacements: { email } }
+    );
 
-    // 2) hashear senha
-    const hash = await bcrypt.hash(senha, 10)
+    if (resultado.length > 0)
+      return res.status(409).json({ mensagem: "E-mail já cadastrado." });
 
-    // 3) inserir usuário
-    const { rows } = await db.query(
-      `INSERT INTO usuarios (nome, email, senha, tipo_usuario, documento, criado_em, atualizado_em)
-       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-       RETURNING id_usuario, nome, email, tipo_usuario, documento, criado_em`,
-      [nome, email, hash, tipo_usuario || null, documento || null]
-    )
+    const hash = await bcrypt.hash(senha, 10);
 
-    const user = rows[0]
+    const [novoUsuario] = await sequelize.query(
+      `INSERT INTO usuarios 
+        (nome, email, telefone, senha, tipo_usuario, cpf, cnpj, criado_em, atualizado_em)
+       VALUES (:nome, :email, :telefone, :senha, :tipo_usuario, :cpf, :cnpj, NOW(), NOW())
+       RETURNING id_usuario, nome, email, tipo_usuario`,
+      {
+        replacements: { nome, email, telefone, senha: hash, tipo_usuario, cpf, cnpj },
+      }
+    );
 
-    // 4) (opcional) já devolver JWT
+    const user = novoUsuario[0];
+
     const token = jwt.sign({ sub: user.id_usuario }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES || '1d'
-    })
+      expiresIn: process.env.JWT_EXPIRES || "1d",
+    });
 
-    return res.status(201).json({ usuario: user, token })
+    return res.status(201).json({ usuario: user, token });
   } catch (err) {
-    return res.status(500).json({ mensagem: 'Erro no servidor', detalhe: err.message })
+    console.error("Erro register:", err);
+    return res.status(500).json({ mensagem: "Erro no servidor", detalhe: err.message });
   }
-}
+};
 
 export const login = async (req, res) => {
-  const { email, senha } = req.body
-  if (!email || !senha) return res.status(400).json({ mensagem: 'Email e senha são obrigatórios' })
+  const { email, senha } = req.body;
+
+  if (!email || !senha)
+    return res.status(400).json({ mensagem: "E-mail e senha são obrigatórios." });
 
   try {
-    const { rows } = await db.query(
-      'SELECT id_usuario, email, senha FROM usuarios WHERE email = $1',
-      [email]
-    )
-    const user = rows[0]
-    if (!user) return res.status(401).json({ mensagem: 'Credenciais inválidas' })
+    const [resultado] = await sequelize.query(
+      "SELECT * FROM usuarios WHERE email = :email",
+      { replacements: { email } }
+    );
 
-    const ok = await bcrypt.compare(senha, user.senha)
-    if (!ok) return res.status(401).json({ mensagem: 'Credenciais inválidas' })
+    if (resultado.length === 0)
+      return res.status(404).json({ mensagem: "Usuário não encontrado." });
 
-    const token = jwt.sign({ sub: user.id_usuario }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES || '1d'
-    })
-    return res.json({ token })
+    const usuario = resultado[0];
+
+    const senhaValida = await bcrypt.compare(senha, usuario.senha);
+    if (!senhaValida)
+      return res.status(401).json({ mensagem: "Senha incorreta." });
+
+    const token = jwt.sign({ sub: usuario.id_usuario }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES || "1d",
+    });
+
+    return res.status(200).json({
+      mensagem: "Login realizado com sucesso!",
+      usuario: {
+        id_usuario: usuario.id_usuario,
+        nome: usuario.nome,
+        email: usuario.email,
+        tipo_usuario: usuario.tipo_usuario,
+      },
+      token,
+    });
   } catch (err) {
-    return res.status(500).json({ mensagem: 'Erro no servidor', detalhe: err.message })
+    console.error("Erro login:", err);
+    return res.status(500).json({ mensagem: "Erro no servidor", detalhe: err.message });
   }
-}
+};

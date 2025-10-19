@@ -1,27 +1,19 @@
-import { Pool } from 'pg'
-import dotenv from 'dotenv'
-import path from 'path'
-import { fileURLToPath } from 'url'
+// /Backend/config/db.js
+import { Sequelize } from "sequelize";
+import dotenv from "dotenv";
+dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const sequelize = new Sequelize(
+  process.env.DB_NAME,
+  process.env.DB_USER,
+  process.env.DB_PASSWORD,
+  {
+    host: process.env.DB_HOST || "localhost",
+    dialect: "postgres",
+    port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432,
+    logging: false,
+  }
+);
 
-dotenv.config({ path: path.join(__dirname, '../.env') })
-
-const db = new Pool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port: Number(process.env.DB_PORT || 5432),
-  max: 10,
-})
-
-db.connect()
-  .then(() => console.log('PostgreSQL conectado.'))
-  .catch((err) => {
-    console.error('Falha na conexão PostgreSQL:', err.message)
-    process.exit(1)
-  })
-
-export default db
+export { sequelize };
+export default sequelize;
