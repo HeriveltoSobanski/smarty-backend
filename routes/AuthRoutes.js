@@ -7,6 +7,14 @@ import { authMiddleware } from "../middlewares/auth.js";
 
 const router = express.Router();
 
+function gerarCNPJFake() {
+  const numeros = [];
+  for (let i = 0; i < 14; i++) {
+    numeros.push(Math.floor(Math.random() * 9));
+  }
+  return numeros.join("");
+}
+
 router.post("/login", async (req, res) => {
   const { email, senha } = req.body;
 
@@ -35,6 +43,7 @@ router.post("/login", async (req, res) => {
       token,
     });
   } catch (e) {
+    console.error("Erro ao fazer login:", e);
     res.status(500).json({ message: "Erro interno no servidor" });
   }
 });
@@ -47,18 +56,31 @@ router.post("/register", async (req, res) => {
       "SELECT 1 FROM usuarios WHERE email = :email LIMIT 1",
       { replacements: { email }, type: QueryTypes.SELECT }
     );
+
     if (existentes.length) return res.status(400).json({ message: "E-mail já cadastrado" });
 
     const hash = await bcrypt.hash(senha, 10);
+    const isEmpresa = tipo_usuario === "empresa";
+    const documento = isEmpresa ? gerarCNPJFake() : null;
 
     await sequelize.query(
-      `INSERT INTO usuarios (nome, email, senha, tipo_usuario, ativo, criado_em, atualizado_em)
-       VALUES (:nome, :email, :senha, :tipo, true, NOW(), NOW())`,
-      { replacements: { nome, email, senha: hash, tipo: tipo_usuario || "cliente" } }
+      `INSERT INTO usuarios (nome, email, senha, tipo_usuario, documento, ativo, criado_em, atualizado_em)
+       VALUES (:nome, :email, :senha, :tipo_usuario, :documento, true, NOW(), NOW())`,
+      {
+        replacements: {
+          nome,
+          email,
+          senha: hash,
+          tipo_usuario: tipo_usuario || "cliente",
+          documento
+        }
+      }
     );
 
+    console.log(`Usuário registrado: ${nome} (${email})`);
     res.status(201).json({ message: "Usuário registrado com sucesso" });
   } catch (e) {
+    console.error("Erro ao registrar usuário:", e);
     res.status(500).json({ message: "Erro interno no servidor" });
   }
 });
@@ -74,6 +96,7 @@ router.get("/user", authMiddleware, async (req, res) => {
 
     res.json({ usuario });
   } catch (e) {
+    console.error("Erro ao buscar usuário:", e);
     res.status(500).json({ mensagem: "Erro interno no servidor" });
   }
 });
